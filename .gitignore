@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Secretos y configuración local (clave HMAC, credenciales de GCP, etc.)
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*.pem
+*.key
+gcloud-key*.json
+service-account*.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Salidas generadas en ejecución
+informes_generados/
+*.log
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.cursor/
+.DS_Store
+Thumbs.db

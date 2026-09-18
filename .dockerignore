@@ -1,0 +1,27 @@
+.git
+.gitignore
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Secretos: nunca deben entrar en la imagen (se pasan como variables de entorno en Cloud Run)
+.env
+.env.*
+.streamlit/secrets.toml
+*.pem
+*.key
+gcloud-key*.json
+service-account*.json
+
+# Documentación y archivos de editor
+README*.md
+LICENSE
+.vscode/
+.idea/
+.cursor/
+Dockerfile
+.dockerignore
