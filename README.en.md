@@ -13,7 +13,7 @@
 
 ## Overview
 
-QRYPTA is a public, interactive web simulator aimed at Computer Engineering students at Universidad Columbia del Paraguay (San Lorenzo campus). It generates keys with a classical PRNG and a simulated QRNG **under the same parameters**, runs them through statistical randomness tests, and trains four machine-learning models to guess which generator each key came from.
+QRYPTA is a public, interactive web simulator aimed at Computer Engineering students at Universidad Columbia del Paraguay (San Lorenzo campus). It generates keys with a classical PRNG (Mersenne Twister) and a simulated QRNG —a model of an ideal quantum source— **under the same parameters**, runs them through statistical randomness tests, measures their linear complexity, and trains four machine-learning models to guess which generator each key came from.
 
 The project is the practical component of a 2026 undergraduate capstone thesis (TCC).
 
@@ -29,9 +29,9 @@ The Streamlit interface has six pages, each with a goal, automatic interpretatio
 |---|---|
 | 1. Home and user guide | Key concepts (bits, seeds, qubits, entropy, p-values, classifiers) and a short quiz. |
 | 2. Key generation lab | Generates 100, 1,000 or 10,000 keys of 64, 128 or 256 bits per generator. The PRNG seed can be a number, a short text (hashed with SHA-256) or automatic. Shows byte histograms and frequency maps. |
-| 3. Entropy and randomness analysis | Shannon entropy (per bit and per byte), proportion of ones, NIST SP 800-22 Monobit and Runs tests, and autocorrelation over 16 lags. |
+| 3. Entropy and randomness analysis | Shannon entropy (per bit and per byte), proportion of ones, NIST SP 800-22 Monobit and Runs tests, autocorrelation over 16 lags and linear complexity (Berlekamp-Massey). |
 | 4. AI classification | Summarises each key in 12 features and trains a Decision Tree, Random Forest, linear SVM and neural network (MLP) on a stratified 70/30 split. Reports accuracy, sensitivity, specificity and a binomial p-value against chance. Includes a series by data volume (100, 1,000 and 10,000 keys). |
-| 5. Dashboard and report | Generator comparison, confusion matrices, automatic conclusion and report export as a **verifiable CSV** and a **read-only PDF**. |
+| 5. Dashboard and report | Generator comparison (including seed dependence), confusion matrices, automatic conclusion and report export as a **verifiable CSV** and a **read-only PDF**. |
 | 6. Verify report | Public verification, single or batch (up to 50 CSVs), with alerts for modified content, submission window, assigned seeds and duplicated or re-exported files. |
 
 ## Modules
@@ -39,8 +39,8 @@ The Streamlit interface has six pages, each with a goal, automatic interpretatio
 | Module | File | Description |
 |---|---|---|
 | M1 | `core/prng.py` | Classical Mersenne Twister (MT19937) PRNG and seed parsing |
-| M2 | `core/qrng.py` | Simulated QRNG: Hadamard gates on 16 qubits measured in Qiskit Aer |
-| M3 | `core/estadistica.py` | Entropy, frequency, autocorrelation, NIST Monobit and Runs, per-key features |
+| M2 | `core/qrng.py` | Simulated QRNG: Qiskit computes the state of 16 qubits with Hadamard gates and each measurement is drawn with `secrets` (the operating system's cryptographic generator) |
+| M3 | `core/estadistica.py` | Entropy, frequency, autocorrelation, NIST Monobit and Runs, linear complexity, per-key features |
 | M4 | `core/ml.py` | Classification of each key's source with four Scikit-Learn models |
 | M5 | `core/experimento.py` | Controlled, reproducible experiments and the data-volume series |
 | M6 | `core/informe.py`, `core/verificacion.py` | Automatic conclusion, CSV/PDF and HMAC-SHA256 verification code |
@@ -56,6 +56,7 @@ app/                 Streamlit UI (main.py, session state, teaching texts and vi
 core/                Simulator logic, independent of the UI
 scripts/             generar_muestra.py: study sample (run locally)
 tests/               Core and app tests (pytest + streamlit.testing)
+docs/                Notes on methodological changes (Spanish)
 .streamlit/          Streamlit configuration (no telemetry, theme)
 env.yaml.ejemplo     Environment-variable template for Cloud Run
 politica_limpieza.json  Artifact Registry image cleanup policy
@@ -66,7 +67,7 @@ politica_limpieza.json  Artifact Registry image cleanup policy
 | Layer | Technology |
 |---|---|
 | Language | Python 3.11 |
-| Quantum simulation | Qiskit 2.4 + Qiskit Aer |
+| Quantum simulation | Qiskit 2.4 (`quantum_info.Statevector`) |
 | Web UI | Streamlit |
 | Artificial intelligence | Scikit-Learn |
 | Statistics and data | NumPy, SciPy, pandas |
@@ -75,7 +76,11 @@ politica_limpieza.json  Artifact Registry image cleanup policy
 | Report verification | HMAC-SHA256 (`hmac`, `hashlib` and `secrets` modules) |
 | Containers and cloud | Docker, Google Cloud Run |
 
-Versions are pinned in `requirements.txt`. Qiskit is deliberately pinned to 2.4.2: the 2.5.x series crashes when Streamlit imports and uses the simulator on different threads (see `tests/test_core.py`).
+Versions are pinned in `requirements.txt`. Qiskit is deliberately pinned to 2.4.2: the 2.5.x series crashes when Streamlit imports and uses Qiskit on different threads (see `tests/test_core.py`).
+
+### Why the simulated QRNG does not use Qiskit Aer
+
+Qiskit Aer draws each measurement with an internal Mersenne Twister (`mt19937_64`): its output has linear complexity 19,937, the same structure as the classical PRNG, so the experiment would compare a Mersenne Twister with itself. The simulator therefore computes the circuit's probabilities with Qiskit and draws the measurements with `secrets`. The result is a **model of an ideal quantum source**: no seed, not repeatable and with no linear structure. It is not real quantum randomness. See [docs/cambios_qrng_y_complejidad_lineal.md](docs/cambios_qrng_y_complejidad_lineal.md) (Spanish).
 
 The architecture is **stateless**: no database and no login. The experiment lives in `st.session_state` and is lost when the tab closes, and reports are verified by recomputing their signature, not by looking up a record.
 
@@ -149,4 +154,4 @@ Universidad Columbia del Paraguay · Computer Engineering · San Lorenzo campus 
 
 Copyright © 2026 Larissa Aiko Kian and Anthony Ojeda. **All rights reserved.** The code is published for academic review and evaluation; to reuse it, please contact the authors. See [LICENSE](LICENSE).
 
-Third-party dependencies keep their own licenses (Python: PSF; Qiskit, Qiskit Aer, Streamlit and Docker: Apache 2.0; Scikit-Learn, NumPy, SciPy and pandas: BSD; Plotly: MIT; Matplotlib: PSF-compatible license; fpdf2: LGPL 3.0).
+Third-party dependencies keep their own licenses (Python: PSF; Qiskit, Streamlit and Docker: Apache 2.0; Scikit-Learn, NumPy, SciPy and pandas: BSD; Plotly: MIT; Matplotlib: PSF-compatible license; fpdf2: LGPL 3.0).

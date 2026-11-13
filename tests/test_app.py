@@ -41,7 +41,7 @@ def test_interpretaciones_didacticas():
     est, ml = exp["estadistica"], exp["ml"]
     import numpy as np
     for texto in (dd.interpretar_bytes(np.packbits(exp["secuencias"]["PRNG"]), "PRNG"), dd.interpretar_entropia(est),
-                  dd.interpretar_pruebas(est), dd.interpretar_autocorrelacion(est), dd.interpretar_clasificacion(ml),
+                  dd.interpretar_pruebas(est), dd.interpretar_autocorrelacion(est), dd.interpretar_complejidad(est), dd.interpretar_clasificacion(ml),
                   dd.interpretar_matriz("Random Forest", ml["resultados"]["Random Forest"]),
                   dd.interpretar_serie(experimento.serie_por_volumen(64, 3, volumenes=(100, 1000)))):
         assert isinstance(texto, str) and len(texto) > 80

@@ -6,7 +6,7 @@ import math
 import numpy as np
 import streamlit as st
 from scipy.stats import chisquare
-from core.config import ALFA
+from core.config import ALFA, GRADO_MT19937
 
 GEN = {"PRNG": "clásico (PRNG)", "QRNG": "cuántico simulado (QRNG)"}
 COLOR = {"PRNG": "#2E6DB4", "QRNG": "#E8740C"}   # mismo color de cada generador en todos los gráficos
@@ -143,6 +143,44 @@ def interpretar_autocorrelacion(est: dict) -> str:
               "Varios puntos lejos de la banda, o el mismo desplazamiento en distintas corridas, indicarían dependencia.")
     return t
 
+def interpretar_complejidad(est: dict) -> str:
+    n = est["PRNG"]["bits_analizados"]
+    cl = {g: est[g]["complejidad_lineal"] for g in ("PRNG", "QRNG")}
+    t = (f"Se analizaron {num(n)} bits de cada generador (1 de cada 32). Una fuente ideal tendría una complejidad lineal "
+         f"cercana a la mitad, **{num(n // 2)}**. El generador {GEN['PRNG']} obtuvo **{num(cl['PRNG'])}** "
+         f"(p = {pval(est['PRNG']['p_complejidad'])}) y el {GEN['QRNG']}, **{num(cl['QRNG'])}** "
+         f"(p = {pval(est['QRNG']['p_complejidad'])}). ")
+    if not est["PRNG"]["alcanza_grado_mt"]:
+        return t + (f"Con esta cantidad de claves, los dos quedan en la mitad: el Mersenne Twister puede tener una complejidad de hasta "
+                    f"{num(GRADO_MT19937)}, y para revelarla hacen falta al menos el doble de bits ({num(2 * GRADO_MT19937)}). "
+                    "**Repita el experimento con 10.000 claves de 256 bits** para ver la diferencia.")
+    if not est["PRNG"]["aprueba_complejidad"] and est["QRNG"]["aprueba_complejidad"]:
+        return t + (f"La diferencia es clara: por más bits que se analicen, el PRNG nunca supera {num(GRADO_MT19937)}, el tamaño de su "
+                    "estado interno. Sus bits siguen una regla lineal fija, algo esperable en un algoritmo determinista. "
+                    "El QRNG simulado, en cambio, se comporta como una fuente ideal: ninguna regla lineal más corta que la mitad de "
+                    "la secuencia la reproduce. **Esta es la diferencia que las pruebas anteriores y la IA por clave no ven.** "
+                    "No es un defecto del Mersenne Twister para su uso habitual (simulación); explica por qué no se usa para generar claves.")
+    if est["PRNG"]["aprueba_complejidad"] and est["QRNG"]["aprueba_complejidad"]:
+        return t + "Ningún generador muestra estructura lineal en esta corrida."
+    return t + "Al menos un generador muestra estructura lineal (p < 0,01)."
+
+LEER_COMPLEJIDAD = f"""
+La **complejidad lineal** responde: **¿cuál es la regla lineal más corta capaz de generar esta secuencia?**
+Una regla lineal calcula cada bit combinando (con XOR) algunos de los bits anteriores. La complejidad es cuántos bits
+anteriores necesita esa regla. Se calcula con el algoritmo de **Berlekamp-Massey**, el mismo de la prueba 2.10 del NIST SP 800-22.
+
+- **Fuente ideal:** la regla más corta necesita la **mitad** de la secuencia. No hay atajo: los bits no siguen ninguna regla.
+- **Algoritmo determinista lineal:** la complejidad se detiene en el tamaño de su estado, por más bits que se analicen.
+  El Mersenne Twister tiene un estado de {num(GRADO_MT19937)} bits efectivos.
+
+Se analiza **1 de cada 32 bits** porque el MT19937 entrega palabras de 32 bits; se aplica exactamente el mismo
+procedimiento a los dos generadores. Para que una estructura de grado {num(GRADO_MT19937)} se revele hacen falta al menos
+{num(2 * GRADO_MT19937)} bits analizados, es decir, unas 5.000 claves de 256 bits: por eso se ve con **10.000 claves**.
+
+El p-valor es la probabilidad de que una fuente ideal tenga una complejidad igual o menor que la observada.
+Medir la complejidad lineal **no** reconstruye ni predice ninguna clave: solo mide si existe una regla lineal corta.
+"""
+
 LEER_ENTROPIA = r"""
 La **entropía de Shannon** mide cuánta incertidumbre tiene una fuente. Para bits, si $p$ es la proporción de unos:
 
@@ -197,7 +235,8 @@ def interpretar_clasificacion(ml: dict) -> str:
         t += (f"Ningún modelo supera al azar (todos con p ≥ 0,01). Que el mejor llegue a {pct(acc)} y no a 50,0 % exacto es normal: "
               f"con {num(n)} claves de prueba, adivinando al azar también se obtienen valores así. "
               "**Conclusión:** con estos indicadores, las claves de ambos generadores son indistinguibles. Es un resultado válido: "
-              "responde la pregunta del experimento.")
+              "responde la pregunta del experimento. Los indicadores describen cada clave por separado; la estructura del "
+              "Mersenne Twister abarca miles de bits y solo aparece al analizar la secuencia completa (complejidad lineal, paso 3).")
     sesgados = [k for k, v in res.items() if abs(v["sensibilidad"] - v["especificidad"]) > 0.3]
     if sesgados:
         t += (f" Observe {', '.join(sesgados)}: su sensibilidad y especificidad son muy distintas porque tiende a responder casi "

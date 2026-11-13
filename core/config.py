@@ -9,3 +9,5 @@ ALFA = 0.01                          # umbral de p-valor (pruebas NIST y clasifi
 PROPORCION_PRUEBA = 0.30             # M4: 70 % entrenamiento / 30 % prueba
 SEMILLA_MODELOS = 42                 # M4: reproducibilidad de la partición y de los modelos
 ETIQUETA_PRNG, ETIQUETA_QRNG = 1, 0  # clase positiva = PRNG (sensibilidad); negativa = QRNG (especificidad)
+DECIMACION_COMPLEJIDAD = 32          # M3: complejidad lineal sobre 1 de cada 32 bits (un bit por palabra de 32 bits)
+GRADO_MT19937 = 19937                # complejidad lineal máxima del Mersenne Twister (grado de su recurrencia)

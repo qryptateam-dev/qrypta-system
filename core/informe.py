@@ -8,7 +8,7 @@ matplotlib.use("Agg")                       # sin interfaz gráfica (contenedor)
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from core import ml, verificacion
-from core.config import ALFA
+from core.config import ALFA, GRADO_MT19937
 
 # Fuente TTF con acentos y «—»: la del contenedor (paquete fonts-dejavu-core) o, al probar localmente,
 # la de Windows o macOS. QRYPTA_FUENTE_PDF permite indicar otra ruta.
@@ -40,13 +40,34 @@ def conclusion(exp: dict) -> str:
               f"por encima del azar (p ≥ 0,01).")
     acc_txt = f"{acc:.1f}".replace(".", ",")
     t3 = f"Mejor modelo: {mejor}, con {acc_txt} % de precisión (accuracy)."
-    t4 = "Detectar una diferencia estadística no equivale a romper una clave ni constituye un ataque criptográfico."
-    return " ".join([t1, t2, t3, t4])
+    t4 = conclusion_complejidad(exp)
+    t5 = "Detectar una diferencia estadística no equivale a romper una clave ni constituye un ataque criptográfico."
+    return " ".join([t1, t2, t3, t4, t5])
+
+def _miles(x: int) -> str:
+    return f"{int(x):,}".replace(",", ".")
+
+def conclusion_complejidad(exp: dict) -> str:
+    """Frase de la conclusión sobre la complejidad lineal (misma subsecuencia para ambos generadores)."""
+    est = exp["estadistica"]
+    n = est["PRNG"]["bits_analizados"]
+    cl = {g: _miles(est[g]["complejidad_lineal"]) for g in ("PRNG", "QRNG")}
+    t = (f"Complejidad lineal (1 de cada 32 bits, {_miles(n)} bits por generador, esperada {_miles(n // 2)}): "
+         f"PRNG {cl['PRNG']}, QRNG {cl['QRNG']}. ")
+    if not est["PRNG"]["alcanza_grado_mt"]:
+        return t + (f"Con esta cantidad de claves no es posible revelar una estructura de grado {_miles(GRADO_MT19937)}; "
+                    "se requieren al menos 5.000 claves de 256 bits por generador.")
+    bajas = [g for g in ("PRNG", "QRNG") if not est[g]["aprueba_complejidad"]]
+    if bajas:
+        return t + (f"Presenta estructura lineal (p < 0,01): {' y '.join(bajas)}. Sus bits siguen una regla lineal determinista, "
+                    "propiedad que las pruebas anteriores y los indicadores por clave no detectan.")
+    return t + "Ningún generador presenta estructura lineal detectable (p ≥ 0,01)."
 
 def filas_experimento(exp: dict) -> list[tuple[str, str, str]]:
     """Convierte el experimento en filas (seccion, campo, valor). El orden es fijo: define la huella."""
     f = [("config", "longitud_clave", str(exp["config"]["longitud_clave"])),
          ("config", "n_qubits", str(exp["config"]["n_qubits"])),
+         ("config", "muestreo_qrng", exp["config"].get("muestreo_qrng", "")),
          ("modelos", "particion", ml.PARTICION)]
     f += [("modelos", f"{nombre}_parametros", ml.PARAMETROS[nombre]) for nombre in exp["ml"]["resultados"]]
     for gen in ("PRNG", "QRNG"):
@@ -54,6 +75,9 @@ def filas_experimento(exp: dict) -> list[tuple[str, str, str]]:
         for campo in ("frecuencia_unos", "entropia_esperada", "entropia_observada", "entropia_diferencia",
                       "entropia_byte", "autocorrelacion_max", "p_monobit", "p_runs"):
             f.append(("estadistica", f"{gen}_{campo}", f"{e[campo]:.6f}"))
+        f.append(("estadistica", f"{gen}_complejidad_bits_analizados", str(e["bits_analizados"])))
+        f.append(("estadistica", f"{gen}_complejidad_lineal", str(e["complejidad_lineal"])))
+        f.append(("estadistica", f"{gen}_p_complejidad", f"{e['p_complejidad']:.6e}"))
     for nombre, m in exp["ml"]["resultados"].items():
         for campo in ("accuracy", "tasa_error", "sensibilidad", "especificidad", "p_valor_vs_azar"):
             f.append(("clasificacion", f"{nombre}_{campo}", f"{m[campo]:.6f}"))
@@ -94,7 +118,9 @@ def exportar_pdf(exp: dict, codigo: str) -> bytes:
     for gen in ("PRNG", "QRNG"):
         e = exp["estadistica"][gen]
         pdf.multi_cell(0, 6, f"{gen}: entropía observada {e['entropia_observada']:.5f} (esperada 1, diferencia {e['entropia_diferencia']:.5f}) · "
-                             f"Monobit p={e['p_monobit']:.4f} · Rachas p={e['p_runs']:.4f}", new_x="LMARGIN", new_y="NEXT")
+                             f"Monobit p={e['p_monobit']:.4f} · Rachas p={e['p_runs']:.4f} · "
+                             f"Complejidad lineal {e['complejidad_lineal']} de {e['bits_analizados']} bits (p={'< 1e-300' if e['p_complejidad'] == 0 else format(e['p_complejidad'], '.2e')})",
+                       new_x="LMARGIN", new_y="NEXT")
     pdf.image(io.BytesIO(_grafico_clasificacion(exp)), w=180)
     pdf.ln(2); pdf.set_font("DejaVu", size=11)
     pdf.cell(0, 7, "Conclusión experimental", new_x="LMARGIN", new_y="NEXT")
