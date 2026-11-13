@@ -2,7 +2,7 @@
 
 Resumen de los cambios del simulador y de su impacto en el anteproyecto (Anteproyecto_TCC_v6). Las páginas son las del índice del anteproyecto.
 
-> **Antes de modificar el anteproyecto, conviene revisar estos cambios con el tutor:** afectan el Módulo 2, amplían el objetivo específico d) y tocan el Alcance Tentativo.
+> **Antes de modificar el anteproyecto, conviene revisar estos cambios con el tutor:** amplían el objetivo específico d) y cambian la construcción del QRNG simulado (Módulo 2). **El alcance del proyecto no cambia**; solo conviene agregar una aclaración en el Alcance Tentativo (ver 3.2).
 
 ---
 
@@ -104,19 +104,35 @@ Mientras tanto, Monobit, rachas, autocorrelación y los cuatro modelos de IA sig
 | Delimitación Conceptual (p. 10) | Menciona "QRNG simulado con Qiskit Aer". | "…QRNG simulado con Qiskit, cuyas mediciones se sortean con el generador criptográfico del sistema operativo…" |
 | Objetivo específico d) (p. 11) | Agregar la complejidad lineal. | "d) Caracterizar la aleatoriedad de ambas fuentes mediante la entropía, la frecuencia de bits, la autocorrelación, las pruebas Monobit y de rachas del NIST SP 800-22 y la complejidad lineal (algoritmo de Berlekamp-Massey)." |
 | Tabla 1, problema 4 (p. 9) | Agregar la complejidad lineal a la solución del Módulo 3. | "…autocorrelación, pruebas Monobit y de rachas, y complejidad lineal." |
-| Tabla 2, Criterios de verificación (p. 12–13) | Agregar dos criterios (ver 3.2). | — |
+| Tabla 2, Criterios de verificación (p. 12–13) | Agregar dos criterios (ver 3.3). | — |
 | Relevancia Científica (p. 14) | Reforzar la distinción entre calidad estadística y seguridad. | "La complejidad lineal permite mostrar experimentalmente esa distinción: el Mersenne Twister supera las pruebas habituales y no es distinguido por los modelos de IA, pero su complejidad lineal queda limitada por el tamaño de su estado (19.937)." |
-| Computación Cuántica y Generación Cuántica de Números Aleatorios (p. 27–28) | Describir el nuevo muestreo y por qué no se usa Aer. | Ver 3.3. |
-| Evaluación Estadística de la Aleatoriedad (p. 28) | Agregar un párrafo sobre la complejidad lineal. | Ver 3.4. |
+| Computación Cuántica y Generación Cuántica de Números Aleatorios (p. 27–28) | Describir el nuevo muestreo y por qué no se usa Aer. | Ver 3.4. |
+| Evaluación Estadística de la Aleatoriedad (p. 28) | Agregar un párrafo sobre la complejidad lineal. | Ver 3.5. |
 | Definición de términos: "QRNG simulado" (p. 33) | Hoy dice "con el simulador Qiskit Aer". | "QRNG simulado: modelo por software de una fuente cuántica ideal; en el estudio, Qiskit calcula el estado de un circuito de compuertas de Hadamard y cada medición se sortea con el generador criptográfico del sistema operativo. Imita el comportamiento ideal de la medición cuántica, pero no constituye una fuente cuántica real." |
 | Definición de términos (p. 33) | Agregar "Complejidad lineal". | "Complejidad lineal: longitud del registro de desplazamiento con realimentación lineal más corto capaz de generar una secuencia; en una fuente ideal es cercana a la mitad de su longitud (Massey, 1969; Rueppel, 1986)." |
-| Alcance de la Interpretación (p. 39) | Aclarar qué mide la complejidad lineal. | "Una complejidad lineal significativamente menor que la esperada indica que la secuencia sigue una regla lineal determinista; no implica que la clave pueda predecirse o reconstruirse en el marco del estudio, que no lo intenta." |
+| Alcance de la Interpretación (p. 39) | Aclarar qué mide la complejidad lineal y que no constituye un ataque (el Alcance Tentativo excluye la simulación de ataques criptográficos). | "Una complejidad lineal significativamente menor que la esperada indica que la secuencia sigue una regla lineal determinista; no implica que la clave pueda predecirse o reconstruirse en el marco del estudio, que no lo intenta." |
 | Descripción de la solución: Módulos 2 y 3 (p. 42) | Reemplazar "ejecutados localmente con el simulador Qiskit Aer" y agregar la complejidad lineal al Módulo 3. | — |
 | Tecnologías: Simulación Cuántica (p. 44) | Reemplazar la mención de Aer. | "Qiskit, marco de código abierto de IBM, que modela el circuito cuántico y calcula las probabilidades de medición (módulo `quantum_info`); las mediciones se sortean con el módulo `secrets` de Python, sin cuentas ni servicios cuánticos en la nube." |
-| Alcance Tentativo (p. 46) | Hoy excluye "la incorporación de generadores basados en fuentes físicas de aleatoriedad". | Agregar: "El generador criptográfico del sistema operativo se emplea solo como mecanismo de sorteo del QRNG simulado y no constituye un tercer generador del estudio." |
-| Referencias (p. 51) | Agregar Massey (1969) y Rueppel (1986), y opcionalmente la documentación de `secrets` y de Qiskit Aer. | Ver 3.5. |
+| Alcance Tentativo (p. 46) | Solo una aclaración, sin cambiar lo incluido ni lo excluido (ver 3.2). | "El generador criptográfico del sistema operativo se emplea solo como mecanismo de sorteo de las mediciones del QRNG simulado y no constituye un generador adicional del estudio." |
+| Referencias (p. 51) | Agregar Massey (1969) y Rueppel (1986), y opcionalmente la documentación de `secrets` y de Qiskit Aer. | Ver 3.6. |
 
-### 3.2 Criterios de verificación sugeridos (Tabla 2)
+### 3.2 ¿Cambia el alcance? No: solo requiere una aclaración
+
+El Alcance Tentativo (p. 46) excluye "la implementación en hardware cuántico físico ni la incorporación de generadores basados en fuentes físicas de aleatoriedad, que se plantean como trabajo futuro". Como `secrets` se alimenta de entropía física de la máquina, un lector estricto podría preguntar si el nuevo QRNG simulado incorpora una fuente física. No lo hace, por tres razones:
+
+1. **No se agrega un tercer generador.** El estudio sigue comparando dos fuentes, el MT19937 y el QRNG simulado. Las variables, la muestra (90 experimentos) y los objetivos a) a c) se mantienen.
+2. **Solo cambia el mecanismo interno de sorteo del Módulo 2.** Todo QRNG simulado necesita un sorteo, como reconoce la p. 28. Antes lo hacía el Mersenne Twister de Qiskit Aer y ahora lo hace `secrets`.
+3. **`secrets` no es una fuente física pura.** Es un generador criptográficamente seguro (CSPRNG) que se reabastece con entropía física. Un TRNG o hardware cuántico como generador del estudio sigue fuera del alcance y como trabajo futuro.
+
+Basta con agregar al Alcance Tentativo la aclaración de la tabla anterior. Los cambios que sí conviene consultar con el tutor son:
+
+| Cambio | Sección | Tipo |
+|---|---|---|
+| Se agrega la complejidad lineal | Objetivo específico d) (p. 11) | Amplía un objetivo; es el cambio principal |
+| Aer se reemplaza por Statevector + `secrets` | Descripción de la solución, tecnologías y definición de términos (p. 33, 42–44) | Cambio técnico de implementación |
+| Medir la complejidad lineal no es un ataque | Alcance de la Interpretación (p. 39) | Aclaración preventiva |
+
+### 3.3 Criterios de verificación sugeridos (Tabla 2)
 
 | Criterio | Procedimiento de verificación | Umbral de aceptación |
 |---|---|---|
@@ -125,15 +141,15 @@ Mientras tanto, Monobit, rachas, autocorrelación y los cuatro modelos de IA sig
 
 El criterio actual de proporción de unos del QRNG (entre 0,498 y 0,502) se mantiene sin cambios.
 
-### 3.3 Texto sugerido para la p. 28
+### 3.4 Texto sugerido para la p. 28
 
 > Un simulador cuántico calcula en una computadora clásica las probabilidades del estado cuántico y genera los resultados de la medición mediante muestreo. En Qiskit Aer, ese muestreo se realiza con un Mersenne Twister interno (mt19937_64), de modo que su salida conserva la estructura lineal de ese generador: en pruebas preliminares, la complejidad lineal de sus mediciones fue 19.937, igual a la del MT19937 clásico. Para que el QRNG simulado represente el comportamiento ideal de la medición cuántica, el simulador calcula el estado del circuito y sus probabilidades con Qiskit y sortea cada medición con el generador criptográfico del sistema operativo (módulo secrets de Python), alimentado por entropía física de la máquina. El resultado es un modelo de fuente cuántica ideal —sin semilla, irrepetible y sin estructura lineal—, pero no constituye una fuente de aleatoriedad cuántica real; por esa razón, el documento emplea de forma consistente la expresión «QRNG simulado».
 
-### 3.4 Texto sugerido para la p. 28 (después del párrafo de autocorrelación)
+### 3.5 Texto sugerido para la p. 28 (después del párrafo de autocorrelación)
 
 > La complejidad lineal de una secuencia es la longitud del registro de desplazamiento con realimentación lineal más corto capaz de generarla, y se calcula con el algoritmo de Berlekamp-Massey (Massey, 1969), el mismo que emplea la prueba 2.10 del NIST SP 800-22 (Bassham et al., 2010). En una fuente ideal es cercana a la mitad de la longitud de la secuencia; en un generador lineal determinista no supera el tamaño de su estado, por más bits que se analicen. El Mersenne Twister tiene una complejidad lineal máxima de 19.937, por lo que esta medición revela su estructura determinista aun cuando supera las pruebas de primer orden. El simulador la calcula sobre uno de cada 32 bits de cada generador, con un p-valor exacto (Rueppel, 1986), y requiere al menos 39.874 bits analizados —10.000 claves de 256 bits— para que esa estructura sea observable.
 
-### 3.5 Referencias a agregar (verificar formato y DOI)
+### 3.6 Referencias a agregar (verificar formato y DOI)
 
 - Massey, J. L. (1969). Shift-register synthesis and BCH decoding. *IEEE Transactions on Information Theory, 15*(1), 122–127. https://doi.org/10.1109/TIT.1969.1054260
 - Rueppel, R. A. (1986). *Analysis and design of stream ciphers*. Springer. https://doi.org/10.1007/978-3-642-82865-2
