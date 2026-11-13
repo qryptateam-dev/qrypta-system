@@ -1,0 +1,12 @@
+[server]
+headless = true
+maxUploadSize = 100          # MB: 50 archivos x 2 MB (RN-006)
+
+[browser]
+gatherUsageStats = false     # sin telemetría: coherente con "no se recolectan datos"
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+primaryColor = "#2E6DB4"      # azul institucional en lugar del rojo por defecto

@@ -1,31 +1,25 @@
-# QRYPTA - imagen para Google Cloud Run (arquitectura sin estado)
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    MPLCONFIGDIR=/tmp/matplotlib
+
+# Fuente con acentos y símbolos para el PDF (core/informe.py)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Instalar dependencias primero para aprovechar la caché de capas
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copiar el código de la aplicación
-COPY . .
+COPY .streamlit/ .streamlit/
+COPY core/ core/
+COPY app/ app/
 
-# Ejecutar como usuario sin privilegios
-RUN useradd --create-home appuser && chown -R appuser /app
-USER appuser
+RUN useradd --create-home --uid 10001 qrypta
+USER qrypta
 
-# Cloud Run inyecta la variable PORT (8080 por defecto)
-ENV PORT=8080
 EXPOSE 8080
-
-# Forma shell (sin corchetes) para que ${PORT} se expanda en tiempo de ejecución
-CMD streamlit run app.py \
-    --server.port=${PORT} \
-    --server.address=0.0.0.0 \
-    --server.headless=true \
-    --browser.gatherUsageStats=false
+CMD ["sh", "-c", "streamlit run app/main.py --server.port=${PORT:-8080} --server.address=0.0.0.0"]

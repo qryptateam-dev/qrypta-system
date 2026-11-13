@@ -1,0 +1,4 @@
+[
+  {"name": "conservar-2-recientes", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 2}},
+  {"name": "borrar-el-resto", "action": {"type": "Delete"}, "condition": {"tagState": "any"}}
+]
