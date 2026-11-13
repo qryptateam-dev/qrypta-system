@@ -101,3 +101,45 @@ def test_qrng_en_hilos_como_streamlit():
     r = subprocess.run([sys.executable, "-c", codigo], capture_output=True, text=True, timeout=120,
                        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     assert r.returncode == 0 and "ok" in r.stdout, r.stderr[-500:]
+
+def test_qrng_respeta_las_probabilidades_del_circuito():
+    # El sorteo sigue lo que calcula Qiskit: con RY(θ), P(1) = sen²(θ/2) = 0,7
+    from qiskit import QuantumCircuit
+    qc = QuantumCircuit(1); qc.ry(2 * np.arcsin(np.sqrt(0.7)), 0)
+    b = qrng.generar_bits_circuito(qc, 40_000)
+    assert abs(b.mean() - 0.7) < 4 * np.sqrt(0.21 / 40_000)
+
+def test_qrng_sin_semilla_lotes_distintos():
+    assert not np.array_equal(qrng.generar_bits_qrng(256), qrng.generar_bits_qrng(256))
+
+def test_berlekamp_massey_vectores_conocidos():
+    assert est.berlekamp_massey(np.zeros(50, dtype=np.uint8)) == 0
+    assert est.berlekamp_massey(np.array([0, 0, 0, 1], dtype=np.uint8)) == 4
+    lfsr = np.zeros(2000, dtype=np.uint8); lfsr[:17] = 1
+    for i in range(17, len(lfsr)):
+        lfsr[i] = lfsr[i - 17] ^ lfsr[i - 14]
+    assert est.berlekamp_massey(lfsr) == 17
+
+def test_p_complejidad_exacto_frente_a_fuerza_bruta():
+    import itertools
+    n = 10
+    cuenta = np.zeros(n + 1)
+    for t in itertools.product((0, 1), repeat=n):
+        cuenta[est.berlekamp_massey(np.array(t, dtype=np.uint8))] += 1
+    acumulada = np.cumsum(cuenta) / 2 ** n
+    assert all(abs(acumulada[L] - est.p_complejidad_lineal(L, n)) < 1e-12 for L in range(n + 1))
+
+def test_complejidad_lineal_separa_mt19937_de_fuente_ideal():
+    # 6.000 claves de 256 bits -> 48.000 bits analizados (1 de cada 32): más que 2 × 19.937
+    exp = experimento.analizar(experimento.generar(6000, 256, 20260101))
+    p, q = exp["estadistica"]["PRNG"], exp["estadistica"]["QRNG"]
+    assert p["alcanza_grado_mt"] and p["complejidad_lineal"] == 19937 and not p["aprueba_complejidad"]
+    assert abs(q["complejidad_lineal"] - 24000) <= 10 and q["aprueba_complejidad"]
+    # el QRNG simulado tampoco tiene estructura en la secuencia completa (con el muestreo de Aer daba 19.937)
+    assert abs(est.berlekamp_massey(exp["secuencias"]["QRNG"][:44_000]) - 22_000) <= 10
+
+def test_complejidad_en_informe_y_conclusion():
+    exp = experimento.ejecutar(100, 256, 5)
+    csv = informe.exportar_csv(exp)
+    assert "estadistica,PRNG_complejidad_lineal," in csv and "config,muestreo_qrng," in csv
+    assert "Complejidad lineal" in informe.conclusion(exp) and "se requieren" in informe.conclusion(exp)

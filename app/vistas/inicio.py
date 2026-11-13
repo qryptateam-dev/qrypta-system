@@ -19,7 +19,7 @@ Usted lo va a comprobar con pruebas estadísticas y con cuatro modelos de Inteli
 st.subheader("El recorrido")
 c = st.columns(4)
 pasos = [("2. Laboratorio", "Genera claves con ambos generadores y las observa en gráficos.", "Qué es una semilla, un bit y un byte."),
-         ("3. Análisis", "Mide entropía, equilibrio, rachas y autocorrelación.", "Qué es la entropía y cómo se lee un p-valor."),
+         ("3. Análisis", "Mide entropía, equilibrio, rachas, autocorrelación y complejidad lineal.", "Qué es la entropía y cómo se lee un p-valor."),
          ("4. Clasificación con IA", "Entrena cuatro modelos para que adivinen de qué generador salió cada clave.", "Cómo se evalúa un clasificador."),
          ("5. Dashboard e Informe", "Reúne los resultados y exporta un informe con código de verificación.", "Cómo comunicar un resultado experimental.")]
 for col, (titulo, hace, aprende) in zip(c, pasos):
@@ -57,8 +57,17 @@ La **semilla** es el punto de partida. En el Laboratorio puede escribir un núme
 en número con la función hash SHA-256. Así, el mismo texto siempre da la misma semilla.""",
     "Generador cuántico simulado (QRNG)": """
 Un **qubit** puede estar en superposición de 0 y 1. La compuerta **Hadamard** lo deja con 50 % de probabilidad de cada
-resultado, y al medirlo se obtiene un bit. Este simulador usa **Qiskit Aer**, que reproduce por software el
-comportamiento estadístico de esa medición; no usa hardware cuántico. Por eso se habla de **QRNG simulado**.""",
+resultado, y al medirlo se obtiene un bit. Este simulador usa **Qiskit** para calcular el estado del circuito y sus
+probabilidades, y sortea cada medición con el generador criptográfico del sistema operativo, alimentado por entropía física.
+No usa hardware cuántico: es un **modelo de fuente cuántica ideal**, por eso se habla de **QRNG simulado**.
+
+¿Por qué no se usa el sorteo de Qiskit Aer? Porque Aer sortea las mediciones con un Mersenne Twister interno: su salida
+tendría la misma estructura que el generador clásico, y se estaría comparando un Mersenne Twister consigo mismo.""",
+    "Complejidad lineal": """
+Mide la **regla lineal más corta** capaz de generar una secuencia. En una fuente ideal no hay atajo: la regla necesita la mitad
+de los bits. En un algoritmo determinista como el Mersenne Twister, la complejidad se detiene en el tamaño de su estado
+(19.937 bits), por más datos que se analicen. Es una forma de ver que **pasar las pruebas estadísticas no es lo mismo que ser
+imprevisible**. Para verlo hacen falta muchos bits: use 10.000 claves de 256 bits.""",
     "Entropía": """
 Mide la **incertidumbre** de una fuente. Una moneda perfecta tiene 1 bit de entropía por lanzamiento: el máximo.
 Una moneda que sale cara el 90 % de las veces tiene solo 0,47: es más fácil de adivinar.""",

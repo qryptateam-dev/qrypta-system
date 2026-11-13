@@ -18,6 +18,12 @@ tabla = [fila("Entropía observada (esperada: 1)", lambda e: dd.num(e["entropia_
          fila("Frecuencia 0 / 1", lambda e: f"{dd.pct(1 - e['frecuencia_unos'], 2)} / {dd.pct(e['frecuencia_unos'], 2)}"),
          fila("Autocorrelación máxima (16 desplazamientos)", lambda e: dd.num(e["autocorrelacion_max"], 4)),
          fila("Patrones detectados (Monobit / rachas)", lambda e: "Ninguno" if e["aprueba_monobit"] and e["aprueba_runs"] else "Sí"),
+         fila("Complejidad lineal (ideal: mitad de los bits)", lambda e: f"{dd.num(e['complejidad_lineal'])} de {dd.num(e['bits_analizados'])} · "
+                                                                       + ("sin estructura" if e["aprueba_complejidad"] else "estructura lineal")),
+         {"Métrica": "Semilla", "Generador clásico (PRNG)": "32 bits: como máximo 2³² secuencias posibles",
+          "Generador cuántico simulado (QRNG)": "No usa semilla"},
+         {"Métrica": "Misma semilla, mismas claves", "Generador clásico (PRNG)": "Sí (reproducible)",
+          "Generador cuántico simulado (QRNG)": "No: cada lote es irrepetible"},
          {"Métrica": f"Clasificación por IA ({mejor})", "Generador clásico (PRNG)": f"{dd.pct(res[mejor]['sensibilidad'])} reconocidas",
           "Generador cuántico simulado (QRNG)": f"{dd.pct(res[mejor]['especificidad'])} reconocidas"}]
 st.dataframe(pd.DataFrame(tabla), hide_index=True, width="stretch")
@@ -25,6 +31,12 @@ iguales = all(est[g]["aprueba_monobit"] and est[g]["aprueba_runs"] for g in ("PR
 dd.interpretacion(("En las mediciones estadísticas, las dos columnas son prácticamente iguales: ambos generadores "
                    "tienen entropía casi máxima, equilibrio entre ceros y unos y bits independientes. " if iguales else
                    "Al menos un generador no pasó alguna prueba estadística; revise el paso 3 y repita con otra semilla. ")
+                  + ("La complejidad lineal sí los separa: el PRNG queda limitado por su estado interno y el QRNG simulado se comporta "
+                     "como una fuente ideal. " if est["PRNG"]["alcanza_grado_mt"] and not est["PRNG"]["aprueba_complejidad"]
+                     and est["QRNG"]["aprueba_complejidad"] else
+                     "La complejidad lineal necesita 10.000 claves de 256 bits para revelar la estructura del PRNG. "
+                     if not est["PRNG"]["alcanza_grado_mt"] else "")
+                  + "Además, las claves del PRNG dependen de una semilla de 32 bits, aunque midan 256: con la misma semilla se repiten. "
                   + f"En la última fila, el mejor modelo ({mejor}) reconoció {dd.pct(res[mejor]['sensibilidad'])} de las claves PRNG "
                   f"y {dd.pct(res[mejor]['especificidad'])} de las QRNG; adivinando se esperaría 50 % en cada una.")
 

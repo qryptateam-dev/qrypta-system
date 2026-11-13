@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from app import estado, didactica as dd
 from core import experimento, estadistica
+from core.config import GRADO_MT19937
 
 st.title("3. Análisis de Entropía y Aleatoriedad")
 dd.paso(2, "Medir la aleatoriedad")
@@ -22,7 +23,9 @@ METRICAS = [("Proporción de unos (ideal: 50 %)", lambda e: dd.pct(e["frecuencia
             ("Entropía por byte (máximo 8)", lambda e: dd.num(e["entropia_byte"], 4)),
             ("Prueba Monobit", lambda e: f"{'Pasa' if e['aprueba_monobit'] else 'No pasa'} (p = {dd.pval(e['p_monobit'])})"),
             ("Prueba de rachas", lambda e: f"{'Pasa' if e['aprueba_runs'] else 'No pasa'} (p = {dd.pval(e['p_runs'])})"),
-            ("Autocorrelación máxima (ideal: 0)", lambda e: dd.num(e["autocorrelacion_max"], 4))]
+            ("Autocorrelación máxima (ideal: 0)", lambda e: dd.num(e["autocorrelacion_max"], 4)),
+            ("Complejidad lineal (ideal: mitad de los bits)", lambda e: f"{dd.num(e['complejidad_lineal'])} de {dd.num(e['bits_analizados'])} "
+                                                                       f"({'pasa' if e['aprueba_complejidad'] else 'no pasa'}, p = {dd.pval(e['p_complejidad'])})")]
 st.dataframe(pd.DataFrame([{"Medición": nombre, **{dd.TITULO[g]: f(est[g]) for g in ("PRNG", "QRNG")}} for nombre, f in METRICAS]),
              hide_index=True, width="stretch")
 
@@ -58,6 +61,22 @@ st.plotly_chart(fig, width="stretch")
 dd.interpretacion(dd.interpretar_autocorrelacion(est))
 dd.como_leer(dd.LEER_AUTOCORRELACION)
 
-st.caption("Es esperable que ambos generadores aprueben estas pruebas de primer orden (CU-06, flujo 4a). "
-           "En el paso siguiente, la pregunta se vuelve más exigente: ¿puede una IA encontrar diferencias que estas pruebas no ven?")
+# ---- Complejidad lineal
+st.subheader("4. Complejidad lineal: ¿existe una regla que genere los bits?")
+nb = est["PRNG"]["bits_analizados"]
+fig = go.Figure([go.Bar(x=[dd.TITULO[g] for g in ("PRNG", "QRNG")], y=[est[g]["complejidad_lineal"] for g in ("PRNG", "QRNG")],
+                        marker_color=[dd.COLOR[g] for g in ("PRNG", "QRNG")], text=[dd.num(est[g]["complejidad_lineal"]) for g in ("PRNG", "QRNG")],
+                        textposition="outside", showlegend=False)])
+fig.add_hline(y=nb / 2, line_dash="dash", annotation_text=f"Fuente ideal ({dd.num(nb // 2)})")
+if nb / 2 > GRADO_MT19937:
+    fig.add_hline(y=GRADO_MT19937, line_dash="dot", line_color="gray", annotation_text=f"Estado del MT19937 ({dd.num(GRADO_MT19937)})",
+                  annotation_position="bottom right")
+fig.update_layout(title=f"Complejidad lineal ({dd.num(nb)} bits analizados por generador)", yaxis_title="Complejidad lineal",
+                  yaxis_range=[0, nb / 2 * 1.2], height=340)
+st.plotly_chart(fig, width="stretch")
+dd.interpretacion(dd.interpretar_complejidad(est))
+dd.como_leer(dd.LEER_COMPLEJIDAD, "Qué es la complejidad lineal y por qué se necesitan 10.000 claves")
+
+st.caption("Es esperable que ambos generadores aprueben las pruebas de primer orden (CU-06, flujo 4a). La complejidad lineal, en "
+           "cambio, mide si existe una regla determinista. En el paso siguiente: ¿puede una IA distinguir las claves una por una?")
 dd.siguiente("clasificacion", "Siguiente: 4. Clasificación con IA")

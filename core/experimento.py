@@ -9,7 +9,8 @@ def generar(n_claves: int, longitud: int, semilla: int, semilla_asignada: bool =
         raise ValueError(f"La longitud debe ser una de {LONGITUDES_CLAVE}")
     n_bits = n_claves * longitud
     return {"config": {"n_claves": n_claves, "longitud_clave": longitud, "n_qubits": N_QUBITS,
-                       "semilla": semilla, "semilla_asignada": semilla_asignada},
+                       "semilla": semilla, "semilla_asignada": semilla_asignada,
+                       "muestreo_qrng": qrng.MUESTREO},
             "secuencias": {"PRNG": prng.generar_bits_prng(n_bits, semilla),
                            "QRNG": qrng.generar_bits_qrng(n_bits)}}
 

@@ -39,7 +39,8 @@ def main():
                               "especificidad": m["especificidad"], "p_valor_vs_azar": m["p_valor_vs_azar"],
                               "es_mejor_modelo": modelo == exp["ml"]["mejor_modelo"],
                               **{f"{g}_{k}": exp["estadistica"][g][k] for g in ("PRNG", "QRNG")
-                                 for k in ("entropia_observada", "p_monobit", "p_runs", "autocorrelacion_max")}})
+                                 for k in ("entropia_observada", "p_monobit", "p_runs", "autocorrelacion_max",
+                                           "complejidad_lineal", "p_complejidad")}})
             print(f"{n_claves} claves · repetición {rep + 1}/{a.repeticiones} lista")
     df = pd.DataFrame(filas)
     df.to_csv(salida / "resultados_detalle.csv", index=False)
